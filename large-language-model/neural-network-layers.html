@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>为什么需要多层？</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    padding: 2rem;
+  }
+  h1 { font-size: 1.3rem; font-weight: 400; color: #a0a0c0; text-align: center; margin-bottom: 0.5rem; }
+  .subtitle { text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 2rem; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 900px; margin: 0 auto; }
+  .panel {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 1.2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .panel h2 { font-size: 1rem; font-weight: 500; margin-bottom: 0.3rem; }
+  .panel .desc { font-size: 0.8rem; color: #888; margin-bottom: 0.8rem; line-height: 1.5; }
+  canvas { width: 100%; border-radius: 8px; background: #0f1629; }
+  .insight {
+    max-width: 900px;
+    margin: 2rem auto 0;
+    background: #16213e;
+    border-radius: 12px;
+    padding: 1.5rem;
+    line-height: 1.8;
+  }
+  .insight h2 { font-size: 1rem; color: #f39c12; margin-bottom: 0.8rem; }
+  .insight p { font-size: 0.9rem; color: #bbb; margin-bottom: 0.8rem; }
+  .insight .key { color: #5dade2; font-weight: 600; }
+  .tag { display: inline-block; background: #f39c1230; color: #f39c12; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>为什么需要多层？—— 从直线到复杂形状</h1>
+<p class="subtitle">任务：网络要学会判断一个点是"橙色区域"还是"蓝色区域"</p>
+
+<div class="panels">
+  <div class="panel">
+    <span class="tag">1个神经元</span>
+    <h2>一条直线，分两半</h2>
+    <p class="desc">单个神经元只能画一条直线，把平面切成两半。左边是一类，右边是另一类。</p>
+    <canvas id="c1" width="400" height="400"></canvas>
+  </div>
+  <div class="panel">
+    <span class="tag">1层 × 2个神经元</span>
+    <h2>两条直线，但还不能组合</h2>
+    <p class="desc">同一层的两个神经元各画一条线。但它们是并行的、独立的——还没有"谁"来组合它们的结果。</p>
+    <canvas id="c2" width="400" height="400"></canvas>
+  </div>
+  <div class="panel">
+    <span class="tag">2层（关键！）</span>
+    <h2>第二层组合 → 出现条形区域</h2>
+    <p class="desc">第二层接收第一层两个神经元的输出，组合出"两条线之间"这个概念。一层做不到这件事。</p>
+    <canvas id="c3" width="400" height="400"></canvas>
+  </div>
+  <div class="panel">
+    <span class="tag">更多层 + 更多神经元</span>
+    <h2>层层组合 → 任意复杂形状</h2>
+    <p class="desc">直线 → 条形 → 折线区域 → 曲线区域 → 任意形状。每多一层，就多一次"组合"的机会。</p>
+    <canvas id="c4" width="400" height="400"></canvas>
+  </div>
+</div>
+
+<div class="insight">
+  <h2>你的微积分类比对了一半</h2>
+  <p>
+    <span class="key">对的部分：</span>确实，更多神经元 ≈ 更细的切分 ≈ 能逼近更复杂的形状。和微积分里"分得越细，越接近曲线"思路一样。
+  </p>
+  <p>
+    <span class="key">关键区别：</span>微积分里你增加的是"同一种操作的数量"（更多等份）。
+    神经网络里，<strong>层数增加的是"组合的层次"</strong>——不只是切得更细，而是能把简单模式<strong>叠着</strong>组合成更高层的抽象。
+    同一层加更多神经元 = 切得更细（你的类比）。加更多层 = 允许"模式的模式"出现。
+  </p>
+  <p>
+    <span class="key">那层数越多越好吗？</span>不是。三个现实问题：<br>
+    ① <strong>信号衰减</strong>：层太多，信息从输入传到输出的过程中会"衰减消失"（梯度消失问题）<br>
+    ② <strong>过拟合</strong>：参数太多，网络会"死记硬背"训练数据，换新数据就不行<br>
+    ③ <strong>算力</strong>：每多一层，计算量和内存都增加<br>
+    所以实际工程中，层数是要精心设计的，不是越多越好。
+  </p>
+</div>
+
+<script>
+function getCtx(id) {
+  const canvas = document.getElementById(id);
+  return canvas.getContext('2d');
+}
+
+function drawGrid(ctx, w, h) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= w; i += 40) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+  }
+  for (let i = 0; i <= h; i += 40) {
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+  }
+}
+
+function drawPoints(ctx, w, h, classifyFn) {
+  for (let px = 10; px < w; px += 8) {
+    for (let py = 10; py < h; py += 8) {
+      const x = px / w, y = py / h;
+      const cls = classifyFn(x, y);
+      ctx.beginPath();
+      ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = cls ? 'rgba(243,156,18,0.35)' : 'rgba(93,173,226,0.2)';
+      ctx.fill();
+    }
+  }
+}
+
+// Panel 1: single line
+(function() {
+  const ctx = getCtx('c1');
+  const w = 400, h = 400;
+  drawGrid(ctx, w, h);
+  drawPoints(ctx, w, h, (x, y) => x > 0.5);
+  ctx.beginPath();
+  ctx.moveTo(200, 0); ctx.lineTo(200, 400);
+  ctx.strokeStyle = '#e74c3c';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = '13px sans-serif';
+  ctx.fillText('← 蓝 | 橙 →', 155, 390);
+})();
+
+// Panel 2: two parallel lines, one layer
+(function() {
+  const ctx = getCtx('c2');
+  const w = 400, h = 400;
+  drawGrid(ctx, w, h);
+  drawPoints(ctx, w, h, (x, y) => x > 0.3 && x < 0.7);
+  ctx.strokeStyle = '#e74c3c';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath(); ctx.moveTo(120, 0); ctx.lineTo(120, 400); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(280, 0); ctx.lineTo(280, 400); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('n₁ 画了这条线', 20, 20);
+  ctx.fillText('n₂ 画了这条线', 290, 20);
+  ctx.fillStyle = '#888';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('两个神经元各切一刀，但还没人组合', 65, 385);
+})();
+
+// Panel 3: two layers → band
+(function() {
+  const ctx = getCtx('c3');
+  const w = 400, h = 400;
+  drawGrid(ctx, w, h);
+
+  // Fill the band
+  ctx.fillStyle = 'rgba(243,156,18,0.18)';
+  ctx.fillRect(120, 0, 160, 400);
+
+  drawPoints(ctx, w, h, (x, y) => x > 0.3 && x < 0.7);
+
+  ctx.strokeStyle = '#2ecc71';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(120, 0); ctx.lineTo(120, 400); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(280, 0); ctx.lineTo(280, 400); ctx.stroke();
+
+  ctx.fillStyle = '#2ecc71';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('第二层说：两条线之间 = 橙色', 80, 200);
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#888';
+  ctx.fillText('组合 = "n₁说右边 AND n₂说左边" → 中间区域', 40, 385);
+})();
+
+// Panel 4: complex shape
+(function() {
+  const ctx = getCtx('c4');
+  const w = 400, h = 400;
+  drawGrid(ctx, w, h);
+
+  // Draw a complex region (ring/donut)
+  const cx = 200, cy = 200, r1 = 60, r2 = 140;
+  drawPoints(ctx, w, h, (x, y) => {
+    const dx = x - 0.5, dy = y - 0.5;
+    const dist = Math.sqrt(dx*dx + dy*dy) * 400;
+    return dist > r1 && dist < r2;
+  });
+
+  // Draw ring outline
+  ctx.strokeStyle = 'rgba(46,204,113,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r2, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r1, 0, Math.PI * 2); ctx.stroke();
+
+  ctx.fillStyle = '#2ecc71';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('多层组合 → 能表达环形、任意形状', 200, 30);
+  ctx.fillStyle = '#888';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('直线拼不出圆环，但多层组合可以逼近任何形状', 200, 385);
+  ctx.textAlign = 'left';
+})();
+</script>
+</body>
+</html>

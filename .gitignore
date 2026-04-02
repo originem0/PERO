@@ -1,0 +1,11 @@
+# Claude Code session files
+.claude/memory/
+.claude/scheduled_tasks.json
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Obsidian (if accidentally synced)
+.obsidian/

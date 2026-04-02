@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>神经网络结构可视化</title>
+<style>
+  body {
+    margin: 0;
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+    color: #eee;
+  }
+  .container {
+    text-align: center;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 400;
+    margin-bottom: 2rem;
+    color: #a0a0c0;
+  }
+  canvas {
+    background: #16213e;
+    border-radius: 12px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+  }
+  .legend {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    font-size: 0.9rem;
+    color: #8888aa;
+  }
+  .legend span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>全连接神经网络：输入层 → 隐藏层 → 输出层</h1>
+  <canvas id="nn" width="800" height="500"></canvas>
+  <div class="legend">
+    <span><span class="dot" style="background:#5dade2"></span> 输入层（3个值）</span>
+    <span><span class="dot" style="background:#f39c12"></span> 隐藏层（4个神经元，各有不同权重）</span>
+    <span><span class="dot" style="background:#2ecc71"></span> 输出层（2个神经元）</span>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('nn');
+const ctx = canvas.getContext('2d');
+
+const layers = [
+  { count: 3, color: '#5dade2', label: '输入层', names: ['x₁','x₂','x₃'] },
+  { count: 4, color: '#f39c12', label: '隐藏层', names: ['n₁','n₂','n₃','n₄'] },
+  { count: 2, color: '#2ecc71', label: '输出层', names: ['o₁','o₂'] }
+];
+
+const layerX = [160, 400, 640];
+const neuronRadius = 24;
+
+function getNeuronY(layerIdx) {
+  const layer = layers[layerIdx];
+  const totalHeight = (layer.count - 1) * 90;
+  const startY = 250 - totalHeight / 2;
+  const positions = [];
+  for (let i = 0; i < layer.count; i++) {
+    positions.push(startY + i * 90);
+  }
+  return positions;
+}
+
+// Draw connections
+for (let l = 0; l < layers.length - 1; l++) {
+  const fromPositions = getNeuronY(l);
+  const toPositions = getNeuronY(l + 1);
+  for (let i = 0; i < fromPositions.length; i++) {
+    for (let j = 0; j < toPositions.length; j++) {
+      ctx.beginPath();
+      ctx.moveTo(layerX[l] + neuronRadius, fromPositions[i]);
+      ctx.lineTo(layerX[l+1] - neuronRadius, toPositions[j]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // weight label
+      const mx = (layerX[l] + layerX[l+1]) / 2 + (j - 1.5) * 6;
+      const my = (fromPositions[i] + toPositions[j]) / 2;
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = '10px monospace';
+      ctx.fillText('w', mx, my);
+    }
+  }
+}
+
+// Draw neurons
+for (let l = 0; l < layers.length; l++) {
+  const positions = getNeuronY(l);
+  const layer = layers[l];
+  for (let i = 0; i < positions.length; i++) {
+    // Glow
+    const gradient = ctx.createRadialGradient(
+      layerX[l], positions[i], 0,
+      layerX[l], positions[i], neuronRadius * 2
+    );
+    gradient.addColorStop(0, layer.color + '40');
+    gradient.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(layerX[l], positions[i], neuronRadius * 2, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(layerX[l], positions[i], neuronRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#16213e';
+    ctx.fill();
+    ctx.strokeStyle = layer.color;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Name
+    ctx.fillStyle = layer.color;
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(layer.names[i], layerX[l], positions[i]);
+  }
+
+  // Layer label
+  ctx.fillStyle = layer.color;
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(layer.label, layerX[l], 460);
+}
+
+// Annotations
+ctx.fillStyle = '#888';
+ctx.font = '12px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText('每条连线 = 一个权重(w)', 400, 30);
+ctx.fillText('同层神经元互不连接，各自独立', 400, 50);
+ctx.fillText('每个神经元：输出 = 激活函数(Σ 输入×权重 + 偏置)', 400, 480);
+</script>
+</body>
+</html>

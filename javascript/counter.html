@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+  <html>
+  <body>
+    <h1 id="display">0</h1>
+    <button onclick="add()">加 1</button>
+    <button onclick="reset()">归零</button>
+
+    <script>
+      // 你的 JS 代码写在这里
+      // 任务：让 add 函数和 reset 函数工作起来
+	  var count=0;
+	  function add(){
+      count=count+1;
+		  h1=document.getElementById("display");
+		  h1.innerText=count;
+		}
+    function reset(){
+      count=0;
+      h1=document.getElementById("display");
+		  h1.innerText=count;
+    }
+    </script>
+  </body>
+  </html>

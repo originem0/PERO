@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(gh api:*)",
+      "Bash(curl -s -L \"https://sharonzhou.site/ai-daily/\" | head -500)",
+      "Bash(curl -s -L \"https://sharonzhou.site/ai-daily/\" | sed -n 's/.*<a href=\"\\\\\\([^\"]*\\\\\\)\"[^>]*>\\\\\\(.*\\\\\\)<\\\\/a>.*/\\\\1 | \\\\2/p' | grep -i \"ai-daily\" | head -30)",
+      "Bash(curl -s -L \"https://sharonzhou.site/ai-daily/\" | sed -n 's/.*href=\"\\\\\\([^\"]*\\\\\\)\".*class=\"entry-link\".*\\\\|.*class=\"entry-link\".*href=\"\\\\\\([^\"]*\\\\\\)\".*/\\\\1\\\\2/p' | head -20)",
+      "Bash(curl -s -L \"https://sharonzhou.site/ai-daily/2026-03-16/\" | sed 's/<[^>]*>/\\\\n/g' | sed '/^$/d' | head -200)",
+      "Bash(curl -s -L \"https://sharonzhou.site/ai-daily/2026-03-15/\" | sed 's/<[^>]*>/\\\\n/g' | sed '/^$/d' | sed -n '/今日看点/,/生成于/p' | head -80)",
+      "WebSearch",
+      "WebFetch(domain:ocw.mit.edu)"
+    ]
+  }
+}

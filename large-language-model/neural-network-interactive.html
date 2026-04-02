@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>亲手跑一遍神经网络</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    padding: 1.5rem;
+    min-height: 100vh;
+  }
+  h1 { font-size: 1.2rem; font-weight: 400; color: #a0a0c0; text-align: center; margin-bottom: 0.3rem; }
+  .subtitle { text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+  .scenario {
+    max-width: 960px; margin: 0 auto 2rem;
+    background: #16213e; border-radius: 12px; padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .scenario h2 { font-size: 1rem; color: #f39c12; margin-bottom: 0.8rem; }
+  .scenario p { font-size: 0.85rem; color: #aaa; line-height: 1.6; margin-bottom: 0.5rem; }
+  .scenario .key { color: #5dade2; }
+
+  .network {
+    max-width: 960px; margin: 0 auto 2rem;
+    background: #16213e; border-radius: 12px; padding: 1.5rem;
+  }
+  .network h2 { font-size: 1rem; color: #5dade2; margin-bottom: 1rem; }
+
+  .flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .layer-box {
+    background: #0f1629;
+    border-radius: 10px;
+    padding: 1rem;
+    min-width: 200px;
+    flex-shrink: 0;
+  }
+  .layer-box h3 { font-size: 0.85rem; color: #888; margin-bottom: 0.8rem; text-align: center; }
+  .arrow-box {
+    display: flex; align-items: center; font-size: 1.5rem; color: #444;
+    padding-top: 3rem;
+  }
+
+  .input-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .input-row label { font-size: 0.8rem; color: #888; min-width: 80px; }
+  .input-row input[type="range"] { width: 100px; }
+  .input-row .val {
+    font-family: monospace; font-size: 0.85rem;
+    color: #5dade2; min-width: 35px; text-align: right;
+  }
+
+  .neuron-detail {
+    background: #1a1a3e;
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-bottom: 0.6rem;
+    border-left: 3px solid #f39c12;
+  }
+  .neuron-detail.output-neuron { border-left-color: #2ecc71; }
+  .neuron-detail h4 { font-size: 0.8rem; color: #f39c12; margin-bottom: 0.4rem; }
+  .neuron-detail.output-neuron h4 { color: #2ecc71; }
+  .neuron-detail .formula {
+    font-family: monospace; font-size: 0.78rem; color: #bbb;
+    line-height: 1.6; word-break: break-all;
+  }
+  .neuron-detail .result {
+    font-family: monospace; font-size: 0.9rem; color: #f39c12;
+    font-weight: bold; margin-top: 0.3rem;
+  }
+  .neuron-detail.output-neuron .result { color: #2ecc71; }
+  .meaning { font-size: 0.78rem; color: #aaa; margin-top: 0.3rem; font-style: italic; }
+
+  .final-box {
+    max-width: 960px; margin: 0 auto 1.5rem;
+    background: #16213e; border-radius: 12px; padding: 1.5rem;
+  }
+  .final-box h2 { font-size: 1rem; color: #2ecc71; margin-bottom: 0.5rem; }
+  .final-result {
+    font-size: 1.3rem; font-weight: bold; text-align: center;
+    padding: 1rem; border-radius: 8px; margin: 0.8rem 0;
+  }
+  .final-result.yes { background: #2ecc7130; color: #2ecc71; }
+  .final-result.no { background: #e74c3c30; color: #e74c3c; }
+  .explain { font-size: 0.85rem; color: #aaa; line-height: 1.7; }
+  .explain strong { color: #eee; }
+
+  .insight-box {
+    max-width: 960px; margin: 0 auto;
+    background: #16213e; border-radius: 12px; padding: 1.5rem;
+  }
+  .insight-box h2 { font-size: 1rem; color: #f39c12; margin-bottom: 0.8rem; }
+  .insight-box p { font-size: 0.85rem; color: #bbb; line-height: 1.7; margin-bottom: 0.6rem; }
+  .insight-box .highlight { color: #5dade2; font-weight: 600; }
+
+  .try-section {
+    text-align: center; margin-top: 1rem; padding: 0.8rem;
+    background: #0f1629; border-radius: 8px;
+  }
+  .try-section p { font-size: 0.85rem; color: #f39c12; }
+</style>
+</head>
+<body>
+
+<h1>亲手跑一遍：两层网络如何判断"适合户外活动"</h1>
+<p class="subtitle">拖动滑块改变输入，看数字怎么流过网络，每一层提取了什么</p>
+
+<div class="scenario">
+  <h2>场景设定</h2>
+  <p>任务：根据 <span class="key">温度</span> 和 <span class="key">下雨程度</span> 判断"适不适合户外活动"。</p>
+  <p>规则（网络要学会的）：温度适中（不太冷不太热）且 不下大雨 → 适合。</p>
+  <p>这个判断<strong>一条直线做不到</strong>——因为温度太高和太低都不行，这需要"中间区域"的概念。这就是多层的用处。</p>
+</div>
+
+<div class="network">
+  <h2>Step 1：输入</h2>
+  <div class="layer-box" style="max-width:400px; margin: 0 auto;">
+    <h3>你来设定天气</h3>
+    <div class="input-row">
+      <label>温度 (0~10)</label>
+      <input type="range" id="temp" min="0" max="10" step="1" value="5">
+      <span class="val" id="tempVal">5</span>
+    </div>
+    <div class="input-row">
+      <label>下雨 (0~10)</label>
+      <input type="range" id="rain" min="0" max="10" step="1" value="2">
+      <span class="val" id="rainVal">2</span>
+    </div>
+    <div style="font-size:0.75rem; color:#666; margin-top:0.5rem;">
+      温度：0=极冷, 5=舒适, 10=极热 &nbsp;|&nbsp; 下雨：0=晴天, 10=暴雨
+    </div>
+  </div>
+</div>
+
+<div class="network">
+  <h2>Step 2：第一层（2个神经元，各检测一个简单条件）</h2>
+  <div class="flow">
+    <div class="layer-box">
+      <div class="neuron-detail">
+        <h4>神经元 A："不太冷？"</h4>
+        <div class="formula" id="nA_formula"></div>
+        <div class="result" id="nA_result"></div>
+        <div class="meaning" id="nA_meaning"></div>
+      </div>
+      <div class="neuron-detail">
+        <h4>神经元 B："不太热？"</h4>
+        <div class="formula" id="nB_formula"></div>
+        <div class="result" id="nB_result"></div>
+        <div class="meaning" id="nB_meaning"></div>
+      </div>
+      <div class="neuron-detail">
+        <h4>神经元 C："不下大雨？"</h4>
+        <div class="formula" id="nC_formula"></div>
+        <div class="result" id="nC_result"></div>
+        <div class="meaning" id="nC_meaning"></div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:0.78rem; color:#666; margin-top:0.8rem; text-align:center;">
+    注意：每个神经元只看到原始数字，做一次"乘权重+偏置→ReLU"。<br>
+    它们各自只能判断一个简单条件，不能组合。
+  </div>
+</div>
+
+<div class="network">
+  <h2>Step 3：第二层（1个神经元，组合第一层的结果）</h2>
+  <div class="flow">
+    <div class="layer-box" style="min-width: 350px;">
+      <div class="neuron-detail output-neuron">
+        <h4>输出神经元："适合户外？"</h4>
+        <div class="formula" id="out_formula"></div>
+        <div class="result" id="out_result"></div>
+        <div class="meaning" id="out_meaning"></div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:0.78rem; color:#666; margin-top:0.8rem; text-align:center;">
+    这个神经元不看原始输入，只看第一层的输出。<br>
+    它做的事：把"不太冷"+"不太热"+"不下雨"三个简单判断<strong>组合</strong>成一个复杂判断。
+  </div>
+</div>
+
+<div class="final-box">
+  <h2>最终判断</h2>
+  <div class="final-result" id="finalResult"></div>
+  <div class="explain" id="finalExplain"></div>
+  <div class="try-section">
+    <p>试试这些组合，观察数字变化：</p>
+    <p style="color:#888; font-size:0.8rem; margin-top:0.3rem;">
+      温度=5, 雨=0（舒适晴天）→ ?  &nbsp;|&nbsp;
+      温度=0, 雨=0（极冷晴天）→ ?  &nbsp;|&nbsp;
+      温度=5, 雨=10（舒适暴雨）→ ?  &nbsp;|&nbsp;
+      温度=10, 雨=0（极热晴天）→ ?
+    </p>
+  </div>
+</div>
+
+<div class="insight-box">
+  <h2>看完之后，关键理解</h2>
+  <p><span class="highlight">第一层做了什么？</span> 每个神经元用自己的权重，从原始数字中提取一个简单信号。神经元A的权重让它对"温度高"有反应，神经元B的权重让它对"温度低"有反应。<strong>权重不同 → 同样的输入，提取的信息不同。</strong></p>
+  <p><span class="highlight">第二层做了什么？</span> 它不看原始输入，它看第一层的输出。它把多个简单信号组合成一个复杂判断——"既不冷又不热还不下雨"。<strong>这就是"组合"的具体含义。</strong></p>
+  <p><span class="highlight">为什么一层做不到？</span> 一个神经元只能做一次"乘加激活"。"温度适中"需要同时满足"不太冷 AND 不太热"——这是两个条件的组合，一次运算表达不了。必须先分别检测，再组合。</p>
+</div>
+
+<script>
+// Weights are pre-set (as if already trained)
+// Neuron A: "not too cold?" → responds when temp is high enough
+// weight_temp=1, weight_rain=0, bias=-3 → fires when temp > 3
+const wA = { temp: 1.0, rain: 0.0, bias: -3.0 };
+
+// Neuron B: "not too hot?" → responds when temp is low enough
+// weight_temp=-1, weight_rain=0, bias=7 → fires when temp < 7
+const wB = { temp: -1.0, rain: 0.0, bias: 7.0 };
+
+// Neuron C: "not heavy rain?" → responds when rain is low
+// weight_temp=0, weight_rain=-1, bias=6 → fires when rain < 6
+const wC = { temp: 0.0, rain: -1.0, bias: 6.0 };
+
+// Output neuron: combines A, B, C
+// All three must be positive (high) for output to be high
+const wOut = { a: 1.0, b: 1.0, c: 1.0, bias: -3.0 };
+
+function relu(x) { return Math.max(0, x); }
+
+function update() {
+  const temp = parseInt(document.getElementById('temp').value);
+  const rain = parseInt(document.getElementById('rain').value);
+  document.getElementById('tempVal').textContent = temp;
+  document.getElementById('rainVal').textContent = rain;
+
+  // Layer 1
+  const rawA = temp * wA.temp + rain * wA.rain + wA.bias;
+  const outA = relu(rawA);
+  document.getElementById('nA_formula').innerHTML =
+    `温度×(${wA.temp}) + 雨×(${wA.rain}) + (${wA.bias})<br>= ${temp}×${wA.temp} + ${rain}×${wA.rain} + (${wA.bias}) = ${rawA.toFixed(1)}<br>ReLU(${rawA.toFixed(1)}) = <strong>${outA.toFixed(1)}</strong>`;
+  document.getElementById('nA_result').textContent = `输出: ${outA.toFixed(1)}`;
+  document.getElementById('nA_meaning').textContent = outA > 0
+    ? `✓ 温度≥3，不算太冷（信号强度 ${outA.toFixed(1)}）`
+    : `✗ 温度太低，信号为 0（被 ReLU 截断）`;
+
+  const rawB = temp * wB.temp + rain * wB.rain + wB.bias;
+  const outB = relu(rawB);
+  document.getElementById('nB_formula').innerHTML =
+    `温度×(${wB.temp}) + 雨×(${wB.rain}) + (${wB.bias})<br>= ${temp}×(${wB.temp}) + ${rain}×${wB.rain} + ${wB.bias} = ${rawB.toFixed(1)}<br>ReLU(${rawB.toFixed(1)}) = <strong>${outB.toFixed(1)}</strong>`;
+  document.getElementById('nB_result').textContent = `输出: ${outB.toFixed(1)}`;
+  document.getElementById('nB_meaning').textContent = outB > 0
+    ? `✓ 温度≤7，不算太热（信号强度 ${outB.toFixed(1)}）`
+    : `✗ 温度太高，信号为 0（被 ReLU 截断）`;
+
+  const rawC = temp * wC.temp + rain * wC.rain + wC.bias;
+  const outC = relu(rawC);
+  document.getElementById('nC_formula').innerHTML =
+    `温度×(${wC.temp}) + 雨×(${wC.rain}) + (${wC.bias})<br>= ${temp}×${wC.temp} + ${rain}×(${wC.rain}) + ${wC.bias} = ${rawC.toFixed(1)}<br>ReLU(${rawC.toFixed(1)}) = <strong>${outC.toFixed(1)}</strong>`;
+  document.getElementById('nC_result').textContent = `输出: ${outC.toFixed(1)}`;
+  document.getElementById('nC_meaning').textContent = outC > 0
+    ? `✓ 雨量<6，不算大雨（信号强度 ${outC.toFixed(1)}）`
+    : `✗ 雨太大，信号为 0（被 ReLU 截断）`;
+
+  // Layer 2
+  const rawOut = outA * wOut.a + outB * wOut.b + outC * wOut.c + wOut.bias;
+  const outFinal = relu(rawOut);
+  document.getElementById('out_formula').innerHTML =
+    `A的输出×${wOut.a} + B的输出×${wOut.b} + C的输出×${wOut.c} + (${wOut.bias})<br>= ${outA.toFixed(1)}×${wOut.a} + ${outB.toFixed(1)}×${wOut.b} + ${outC.toFixed(1)}×${wOut.c} + (${wOut.bias}) = ${rawOut.toFixed(1)}<br>ReLU(${rawOut.toFixed(1)}) = <strong>${outFinal.toFixed(1)}</strong>`;
+  document.getElementById('out_result').textContent = `输出: ${outFinal.toFixed(1)}`;
+  document.getElementById('out_meaning').textContent = outFinal > 0
+    ? `三个条件都满足，组合后信号为正 → 适合！`
+    : `至少一个条件不满足，组合后信号为 0 → 不适合`;
+
+  // Final
+  const resultEl = document.getElementById('finalResult');
+  if (outFinal > 0) {
+    resultEl.textContent = `✓ 适合户外活动（得分: ${outFinal.toFixed(1)}）`;
+    resultEl.className = 'final-result yes';
+  } else {
+    resultEl.textContent = `✗ 不适合户外活动（得分: 0）`;
+    resultEl.className = 'final-result no';
+  }
+
+  // Explanation
+  const parts = [];
+  if (outA <= 0) parts.push('温度太低（神经元A输出0）');
+  if (outB <= 0) parts.push('温度太高（神经元B输出0）');
+  if (outC <= 0) parts.push('雨太大（神经元C输出0）');
+
+  let explain = '';
+  if (parts.length === 0) {
+    explain = `<strong>数字流动过程：</strong>温度${temp}和雨量${rain}进入网络 → 第一层三个神经元各自检测：A说"不冷"(${outA.toFixed(1)})，B说"不热"(${outB.toFixed(1)})，C说"雨不大"(${outC.toFixed(1)}) → 第二层把三个信号加起来减3=${rawOut.toFixed(1)} → 大于0 → 适合！`;
+  } else {
+    explain = `<strong>数字流动过程：</strong>温度${temp}和雨量${rain}进入网络 → 第一层检测发现问题：${parts.join('、')} → 当任一神经元输出0时，第二层的加权和会不够大 → 最终被ReLU截断为0 → 不适合。`;
+  }
+  document.getElementById('finalExplain').innerHTML = explain;
+}
+
+document.getElementById('temp').addEventListener('input', update);
+document.getElementById('rain').addEventListener('input', update);
+update();
+</script>
+</body>
+</html>
